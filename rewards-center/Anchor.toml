@@ -1,0 +1,15 @@
+[provider]
+cluster = "devnet"
+wallet = "./tests/test-keypairs/test-key.json"
+
+[programs.mainnet]
+solana_nft_programs_rewards_center = "EnUpcqfqHozLZdojn2595cLSZkUqgPCDujSonJvP27HP"
+
+[programs.devnet]
+solana_nft_programs_rewards_center = "EnUpcqfqHozLZdojn2595cLSZkUqgPCDujSonJvP27HP"
+
+[programs.testnet]
+solana_nft_programs_rewards_center = "EnUpcqfqHozLZdojn2595cLSZkUqgPCDujSonJvP27HP"
+
+[programs.localnet]
+solana_nft_programs_rewards_center = "EnUpcqfqHozLZdojn2595cLSZkUqgPCDujSonJvP27HP"

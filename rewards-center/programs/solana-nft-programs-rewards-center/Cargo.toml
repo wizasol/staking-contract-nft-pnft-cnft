@@ -1,0 +1,31 @@
+[package]
+name = "solana-nft-programs-rewards-center"
+version = "1.0.0"
+description = "Rewards center"
+edition = "2021"
+repository = "https://github.com/solana-nft-programs/rewards-center"
+license = "AGPL-3.0"
+keywords = ["solana"]
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "solana_nft_programs_reward_center"
+
+[features]
+no-entrypoint = []
+no-idl = []
+cpi = ["no-entrypoint"]
+default = []
+
+[dependencies]
+anchor-lang = { version = "0.28.0", features = ["init-if-needed"] }
+anchor-spl = "0.28.0"
+spl-token = { version = "3.3.0", features = ["no-entrypoint"] }
+mpl-token-metadata = "3.1.0"
+mpl-utils = "0.3.2"
+mpl-token-auth-rules = { version = "1.4.3", features = ["no-entrypoint"] }
+solana-nft-programs-creator-standard = { version = "1.0.0", features = ["cpi"] }
+solana-program = "1.10.29"
+
+[dev-dependencies]
+proptest = { version = "1.0" }

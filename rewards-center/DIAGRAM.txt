@@ -1,0 +1,112 @@
+
+Table stake_authorization_record {
+  address publicKey [pk]
+  bump u8 
+  pool publicKey [ref: > stake_pool.address]
+  mint publicKey 
+}
+
+Table reward_entry {
+  address publicKey [pk]
+  bump u8 
+  stake_entry publicKey 
+  reward_distributor publicKey [ref: > reward_distributor.address]
+  reward_seconds_received u128 
+  multiplier u64 
+}
+
+Table reward_distributor {
+  address publicKey [pk]
+  bump u8 
+  stake_pool publicKey [ref: > stake_pool.address]
+  kind u8 
+  authority publicKey 
+  identifier u64 
+  reward_mint publicKey 
+  reward_amount u64 
+  reward_duration_seconds u128 
+  rewards_issued u128 
+  max_supply Opt(u64) 
+  default_multiplier u64 
+  multiplier_decimals u8 
+  max_reward_seconds_received Opt(u128) 
+}
+
+Table receipt_manager {
+  address publicKey [pk]
+  bump u8 
+  stake_pool publicKey [ref: > stake_pool.address]
+  authority publicKey 
+  required_stake_seconds u128 
+  stake_seconds_to_use u128 
+  claimed_receipts_counter u128 
+  payment_mint publicKey 
+  payment_amount u64 
+  payment_manager publicKey 
+  payment_recipient publicKey 
+  requires_authorization bool 
+  name string 
+  max_claimed_receipts Opt(u128) 
+}
+
+Table receipt_entry {
+  address publicKey [pk]
+  bump u8 
+  stake_entry publicKey [ref: > stake_entry.address]
+  used_stake_seconds u128 
+}
+
+Table reward_receipt {
+  address publicKey [pk]
+  bump u8 
+  receipt_entry publicKey [ref: > receipt_entry.address]
+  receipt_manager publicKey [ref: > receipt_manager.address]
+  target publicKey 
+  allowed bool 
+}
+
+Table stake_booster {
+  address publicKey [pk]
+  bump u8 
+  stake_pool publicKey [ref: > stake_pool.address]
+  identifier u64 
+  payment_amount u64 
+  payment_mint publicKey 
+  payment_manager publicKey 
+  payment_recipient publicKey 
+  boost_seconds u128 
+  start_time_seconds i64 
+}
+
+Table stake_entry {
+  address publicKey [pk]
+  bump u8 
+  kind u8 
+  pool publicKey [ref: > stake_pool.address]
+  amount u64 
+  stake_mint publicKey 
+  last_staker publicKey 
+  last_staked_at i64 
+  last_updated_at i64 
+  total_stake_seconds u128 
+  cooldown_start_seconds Opt(i64) 
+}
+
+Table stake_pool {
+  address publicKey [pk]
+  bump u8 
+  authority publicKey 
+  total_staked u32 
+  reset_on_unstake bool 
+  cooldown_seconds Opt(u32) 
+  min_stake_seconds Opt(u32) 
+  end_date Opt(i64) 
+  stake_payment_amount Opt(u64) 
+  unstake_payment_amount Opt(u64) 
+  payment_mint Opt(publicKey) 
+  payment_manager Opt(publicKey) 
+  requires_authorization bool 
+  allowed_creators publicKey[] 
+  allowed_collections publicKey[] 
+  identifier string 
+}
