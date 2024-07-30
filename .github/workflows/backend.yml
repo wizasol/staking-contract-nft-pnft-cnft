@@ -1,0 +1,114 @@
+name: Build and Deploy
+
+env:
+  PROJECT_NAME: bozo # Change project name
+  PROJECT_TYPE: backend # supported frontend or backend
+  WORKING_DIRECTORY: backend # this is really important as name of the folder (frontend/backend/landing etc ...) if there is no folder but the current directory, use ./
+  DEV_APP_PORT: 3630 # Update this port as needed -> follow ports please
+  DEV_DOMAIN_NAME: api-bozo.avrean.net # Change domain name -> ask to me
+  PROD_APP_PORT: 3631 # Update this port as needed -> follow ports please
+  PROD_DOMAIN_NAME: api.bozo.network # Change domain name -> ask tome
+  ENABLE_CACHE: false
+  ENABLE_CACHE_CONTROL: false
+  ENABLE_RATE_LIMITING: false
+  RATE_BURST: 10
+  DEV_SERVER_USER: ${{ secrets.DEV_SERVER_HZN_USER }}
+  DEV_SERVER_IP: ${{ secrets.DEV_SERVER_HZN_HOSTNAME }}
+  DEV_SERVER_PASSWORD: ${{ secrets.DEV_SERVER_HZN_PASSWORD }}
+  PROD_SERVER_USER: ${{ secrets.PROD_SERVER_HZN_USER }}
+  PROD_SERVER_IP: ${{ secrets.PROD_SERVER_HZN_HOSTNAME }}
+  PROD_SERVER_PASSWORD: ${{ secrets.PROD_SERVER_HZN_PASSWORD }}
+
+on:
+  push:
+    branches:
+      - "*"
+    paths:
+      - "backend/**/*" # change this to the working directory as above.
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, tag or SHA to run this workflow on"
+        required: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+      - name: Cache Node.js packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+      - run: npm install -g pnpm
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm run build
+
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') && success()
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set environment variables for Dev
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          echo "SERVER_USER=${{ env.DEV_SERVER_USER }}" >> $GITHUB_ENV
+          echo "SERVER_IP=${{ env.DEV_SERVER_IP }}" >> $GITHUB_ENV
+          echo "SERVER_PASSWORD=${{ env.DEV_SERVER_PASSWORD }}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+          echo "APP_PORT=${{ env.DEV_APP_PORT }}" >> $GITHUB_ENV
+          echo "DOMAIN_NAME=${{ env.DEV_DOMAIN_NAME }}" >> $GITHUB_ENV
+
+      - name: Set environment variables for Prod
+        if: github.ref != 'refs/heads/dev'
+        run: |
+          echo "SERVER_USER=${{ env.PROD_SERVER_USER }}" >> $GITHUB_ENV
+          echo "SERVER_IP=${{ env.PROD_SERVER_IP }}" >> $GITHUB_ENV
+          echo "SERVER_PASSWORD=${{ env.PROD_SERVER_PASSWORD }}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=prod" >> $GITHUB_ENV
+          echo "APP_PORT=${{ env.PROD_APP_PORT }}" >> $GITHUB_ENV
+          echo "DOMAIN_NAME=${{ env.PROD_DOMAIN_NAME }}" >> $GITHUB_ENV
+
+      - name: SSH and Prepare Server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ env.SERVER_IP }}
+          username: ${{ env.SERVER_USER }}
+          password: ${{ env.SERVER_PASSWORD }}
+          script: |
+            rm -rf /home/${{ env.SERVER_USER }}/sites/${{ env.PROJECT_NAME }}/${{ env.ENVIRONMENT }}/${{ env.WORKING_DIRECTORY }}
+            mkdir -p /home/${{ env.SERVER_USER }}/sites/${{ env.PROJECT_NAME }}/${{ env.ENVIRONMENT }}/${{ env.WORKING_DIRECTORY }}
+      - name: SCP to Server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ env.SERVER_IP }}
+          username: ${{ env.SERVER_USER }}
+          password: ${{ env.SERVER_PASSWORD }}
+          source: ${{ env.WORKING_DIRECTORY }}
+          target: /home/${{ env.SERVER_USER }}/sites/${{ env.PROJECT_NAME }}/${{ env.ENVIRONMENT }}/
+      - name: Deploy
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ env.SERVER_IP }}
+          username: ${{ env.SERVER_USER }}
+          password: ${{ env.SERVER_PASSWORD }}
+          script: |
+            ansible-playbook /home/${{ env.SERVER_USER }}/ansible/start_script_yarn.ansible.yml -e "env_environment=${{ env.ENVIRONMENT }} project_name=${{ env.PROJECT_NAME }} project_type=${{ env.PROJECT_TYPE }} app_port=${{ env.APP_PORT }} working_directory=${{ env.WORKING_DIRECTORY }}"
+            ansible-playbook /home/${{ env.SERVER_USER }}/ansible/start_nginx_conf.ansible.yml -e "ansible_become_pass=${{ env.SERVER_PASSWORD }} env_type=${{ env.ENVIRONMENT }} project_name=${{ env.PROJECT_NAME }} project_type=${{ env.PROJECT_TYPE }} app_port=${{ env.APP_PORT }} working_directory=${{ env.WORKING_DIRECTORY }} server_name=${{ env.DOMAIN_NAME }} enable_rate_limiting=${{env.ENABLE_RATE_LIMITING}} rate_burst=${{env.RATE_BURST}} enable_cache=${{env.ENABLE_CACHE}} enable_cache_control=${{env.ENABLE_CACHE_CONTROL}}"

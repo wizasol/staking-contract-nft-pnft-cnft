@@ -1,0 +1,112 @@
+name: Build and Deploy
+
+env:
+  PROJECT_NAME: bozo # Change project name
+  PROJECT_TYPE: frontend # Change to frontend for frontend deployment
+  WORKING_DIRECTORY: frontend # Change to frontend for frontend deployment
+  DEV_APP_PORT: 3618 # Update this port as needed
+  DEV_DOMAIN_NAME: bozo.avrean.net # Change domain name
+  PROD_APP_PORT: 3620 # Update this port as needed
+  PROD_DOMAIN_NAME: bozo.network # Change domain name
+  ENABLE_CACHE: false
+  ENABLE_CACHE_CONTROL: false
+  ENABLE_RATE_LIMITING: false
+  DEV_SERVER_USER: ${{ secrets.SERVER_HETZNER_USER }}
+  DEV_SERVER_IP: ${{ secrets.SERVER_HETZNER_IP }}
+  DEV_SERVER_PASSWORD: ${{ secrets.SERVER_HETZNER_DEV_PASSWORD }}
+  PROD_SERVER_USER: ${{ secrets.SERVER_HETZNER_USER }}
+  PROD_SERVER_IP: ${{ secrets.SERVER_HETZNER_IP }}
+  PROD_SERVER_PASSWORD: ${{ secrets.SERVER_HETZNER_DEV_PASSWORD }}
+
+on:
+  push:
+    branches:
+      - "*"
+    paths:
+      - "frontend/**/*" # Change path
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, tag or SHA to run this workflow on"
+        required: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+      - name: Cache Node.js packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+      - run: npm install -g pnpm
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm run build
+
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main') && success()
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set environment variables for Dev
+        if: github.ref == 'refs/heads/dev'
+        run: |
+          echo "SERVER_USER=${{ env.DEV_SERVER_USER }}" >> $GITHUB_ENV
+          echo "SERVER_IP=${{ env.DEV_SERVER_IP }}" >> $GITHUB_ENV
+          echo "SERVER_PASSWORD=${{ env.DEV_SERVER_PASSWORD }}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+          echo "APP_PORT=${{ env.DEV_APP_PORT }}" >> $GITHUB_ENV
+          echo "DOMAIN_NAME=${{ env.DEV_DOMAIN_NAME }}" >> $GITHUB_ENV
+
+      - name: Set environment variables for Prod
+        if: github.ref != 'refs/heads/dev'
+        run: |
+          echo "SERVER_USER=${{ env.PROD_SERVER_USER }}" >> $GITHUB_ENV
+          echo "SERVER_IP=${{ env.PROD_SERVER_IP }}" >> $GITHUB_ENV
+          echo "SERVER_PASSWORD=${{ env.PROD_SERVER_PASSWORD }}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=prod" >> $GITHUB_ENV
+          echo "APP_PORT=${{ env.PROD_APP_PORT }}" >> $GITHUB_ENV
+          echo "DOMAIN_NAME=${{ env.PROD_DOMAIN_NAME }}" >> $GITHUB_ENV
+
+      - name: SSH and Prepare Server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ env.SERVER_IP }}
+          username: ${{ env.SERVER_USER }}
+          password: ${{ env.SERVER_PASSWORD }}
+          script: |
+            rm -rf /home/${{ env.SERVER_USER }}/sites/${{ env.PROJECT_NAME }}/${{ env.ENVIRONMENT }}/${{ env.PROJECT_TYPE }}
+            mkdir -p /home/${{ env.SERVER_USER }}/sites/${{ env.PROJECT_NAME }}/${{ env.ENVIRONMENT }}/${{ env.PROJECT_TYPE }}
+      - name: SCP to Server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ env.SERVER_IP }}
+          username: ${{ env.SERVER_USER }}
+          password: ${{ env.SERVER_PASSWORD }}
+          source: ${{ env.WORKING_DIRECTORY }}
+          target: /home/${{ env.SERVER_USER }}/sites/${{ env.PROJECT_NAME }}/${{ env.ENVIRONMENT }}/
+      - name: Deploy
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ env.SERVER_IP }}
+          username: ${{ env.SERVER_USER }}
+          password: ${{ env.SERVER_PASSWORD }}
+          script: |
+            /home/dev/scripts/start_script.sh -e ${{ env.ENVIRONMENT }} -p ${{ env.PROJECT_NAME }} -d ${{env.WORKING_DIRECTORY}} -t ${{ env.PROJECT_TYPE }} -P ${{ env.APP_PORT }} -s ${{ env.DOMAIN_NAME }} -r ${{ env.ENABLE_RATE_LIMITING }} -c ${{ env.ENABLE_CACHE }} -C ${{ env.ENABLE_CACHE_CONTROL }} -v true

@@ -1,0 +1,680 @@
+openapi: '3.0.0'
+info:
+  title: Template for Backend
+  description: Made by Harpreet Singh At @redergo
+  version: 1.1.0
+  contact:
+    email: harpreet.singh@redergo.com, h.singh8149@gmail.com
+    url: 'https://redergo.com/en/'
+
+# servers:
+#   - url: "https://localhost:3222/api/v1"
+#     description: for local host - secure
+#   - url: "http://localhost:3222/api/v2"
+#     description: for local host - regular
+
+servers:
+  - url: '{protocol}://{url}/api/{version}'
+    description: for local host
+    variables:
+      version:
+        enum:
+          - v1
+          - v2
+        default: v1
+      url:
+        enum:
+          - localhost:3222
+          # - other site
+        default: localhost:3222
+      protocol:
+        enum:
+          - http
+          - https
+        default: http
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+
+paths:
+  /user/signup:
+    post:
+      tags:
+        - User
+      summary: signup a new user. required files are - name, email, password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                  default: dev
+                  required: true
+                email:
+                  type: string
+                  default: dev@tester.com
+                password:
+                  type: string
+                  default: 123456
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      _id:
+                        type: string
+                      createdAt:
+                        type: string
+                      updatedAt:
+                        type: string
+        400:
+          description: Bad request
+        422:
+          description: Bad request ,check fields
+        500:
+          description: internal server error
+
+  /user/login:
+    post:
+      tags:
+        - User
+      summary: login a new user. required files are -  email and password. Also adds httpOnly cookie in browser. It sends token in response too.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  default: dev@tester.com
+                password:
+                  type: string
+                  default: 123456
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      _id:
+                        type: string
+                      createdAt:
+                        type: string
+        400:
+          description: Bad request
+        500:
+          description: internal server error
+
+  /user/logout:
+    get:
+      tags:
+        - User
+      summary: get request to logout the user. Also removes httpOnly cookies
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+        400:
+          description: Bad request
+        500:
+          description: internal server error
+
+  /user/forgotpassword:
+    post:
+      tags:
+        - User
+      summary: sends an email with link to forgot password. Contains the token for user validation. Public hosted version will not send email to your account. Use your own SMTP details to access this feature on local project
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        400:
+          description: Bad request
+        500:
+          description: internal server error
+
+  /user/password/reset/{token}:
+    post:
+      tags:
+        - User
+      summary: Allows user to reset password, validated based on token. send password and confirm password fields
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+                - confirmPassword
+              properties:
+                password:
+                  type: string
+                confirmPassword:
+                  type: string
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      _id:
+                        type: string
+                      createdAt:
+                        type: string
+        400:
+          description: Bad request
+        500:
+          description: internal server error
+
+  /user/forgotpasswordjwt:
+    post:
+      tags:
+        - User
+      summary: sends an email with link to forgot password. Contains the jwt token for user validation.
+        Public hosted version will not send email to your account. Use your own SMTP details to access
+        this feature on local project
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        400:
+          description: Bad request
+        500:
+          description: internal server error
+
+  /user/password/resetjwt/{token}:
+    post:
+      tags:
+        - User
+      summary: Allows user to reset password, validated based on jwt token. send password and confirm password fields
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+                - confirmPassword
+              properties:
+                password:
+                  type: string
+                confirmPassword:
+                  type: string
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      _id:
+                        type: string
+                      createdAt:
+                        type: string
+        400:
+          description: Bad request
+        500:
+          description: internal server error
+
+  /user/userdashboard:
+    get:
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - User
+      summary: Gets all details about logged in user. Send token in cookies as named token or send Bearer Auth
+      requestBody:
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      _id:
+                        type: string
+                      createdAt:
+                        type: string
+        400:
+          description: Bad request
+        401:
+          description: Bad request, probably not logged in
+        500:
+          description: internal server error
+
+  /user/password/update:
+    post:
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - User
+      summary: User can update the password if he is logged in. Send oldPassword and password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - oldPassword
+                - password
+              properties:
+                oldPassword:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      _id:
+                        type: string
+                      createdAt:
+                        type: string
+        400:
+          description: Bad request
+        500:
+          description: internal server error
+
+  /user/userdashboard/update:
+    post:
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - User
+      summary: User can update the name, emails.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+        400:
+          description: Bad request
+        500:
+          description: internal server error
+
+  /user/admin/users:
+    get:
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - Admin
+      summary: If user is admin, response will get array of all users
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          required: false
+          description: Page Number.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          required: false
+          description: The number of items to return.
+        - in: query
+          name: search
+          style: deepObject
+          explode: true
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              role:
+                type: string
+
+          description: search by only listed paramters are available.
+      requestBody:
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    user:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        email:
+                          type: string
+                        role:
+                          type: string
+                        _id:
+                          type: string
+                        createdAt:
+                          type: string
+
+        400:
+          description: Bad request
+        500:
+          description: internal server error
+
+  /user/admin/user/{id}:
+    get:
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - Admin
+      summary: If user is admin, response will get details of 1 user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      _id:
+                        type: string
+                      createdAt:
+                        type: string
+
+        400:
+          description: Bad request
+        500:
+          description: internal server error
+    delete:
+      tags:
+        - Admin
+      summary: If user is admin, delete the user with given id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+        400:
+          description: Bad request
+        500:
+          description: internal server error
+
+  /stripe/stripekey:
+    get:
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - Payment
+      summary: gets you the public stripe key
+      requestBody:
+
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stripekey:
+                    type: string
+
+        400:
+          description: Bad request
+        500:
+          description: internal server error
+
+  /stripe/capturestripe:
+    post:
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      tags:
+        - Payment
+      summary: send amount in number. Send amount after multiplying by 100. Also request from swagger UI are not proper as to capture payment we need to send dummy card details
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+
+      responses:
+        200:
+          description: All good success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  amount:
+                    type: number
+                  client_secret:
+                    type: string
+
+        400:
+          description: Bad request
+        500:
+          description: internal server error
