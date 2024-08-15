@@ -85,6 +85,6 @@
     If you have sth to ask , feel free to contact me.
   </h2>
   <a href="https://gmail.com">Gmail : akiyoshinakao95911@gmail.com</a><br/>
-  <a href="https://discord.com">Discord : solkeen</a><br/>
+  <a href="https://discord.com">Discord : @solkeen</a><br/>
   </body>
 </html>
