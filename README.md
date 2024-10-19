@@ -10,7 +10,7 @@
   </head>
   <body>
 
-<h1 style="text-align: center;">Staking Contract</h1>
+<h1 style="text-align: center;">Nft Staking Contract</h1>
 
 <div style="display:flex; justify-content:space-between">
     <h4 style="float: left;">This Contract is solana program for management of nft , pnft , cnft</h4>
