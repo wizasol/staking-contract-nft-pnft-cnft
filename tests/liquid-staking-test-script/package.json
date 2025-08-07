@@ -1,0 +1,26 @@
+{
+  "name": "liquid-staking-test-script",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "scripts": {
+    "dev": "ts-node ./index.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.29.0",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.95.4",
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "fs": "^0.0.1-security"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.0",
+    "prettier": "^2.6.2",
+    "typescript": "^4.3.5",
+    "dotenv": "^16.4.5"
+  }
+}
